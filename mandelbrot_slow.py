@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
+import matplotlib.colors
 import numpy as np
 #import sys
 from progressbar import progressbar
@@ -74,15 +75,18 @@ class Mandelbrot_slow():
 		"""
 		
 		clr_values = self.mandels_grid.flatten()
+		cmap = plt.cm.rainbow
+		norm = matplotlib.colors.Normalize(vmin=1, vmax=10)
 		
 		# Normalizes the values of the color array
 		clr_values = clr_values/(np.amax(clr_values)/1000)
 		# Converts the array into an array of hex color values
 		# The power on x is just to increase the color range
 		clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in clr_values]
+
 		
 		# Plots all the points calculated with corresponding color values
-		plt.scatter(self.array_x, self.array_y, color=clr_arr_hex)
+		plt.scatter(self.array_x, self.array_y, color=cmap(norm(clr_values)))
 		plt.savefig(filename)
 		print("\nImage saved as: {}".format(filename))
 

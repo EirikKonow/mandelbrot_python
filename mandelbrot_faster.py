@@ -1,131 +1,103 @@
 #!/usr/bin/env python3
 
-import matplotlib.pyplot as plt
 import numpy as np
-import sys
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import time
-from numba import jit
+from numba.experimental import jitclass
+from numba import int32, float32, float64, char
+import numba as nb
 
 
-@jit(nopython=True)
-def mandelbrot(z: complex, c: complex) -> complex:
-	"""
-	Computes a iteration for a point in the mandlebrot set
-	
-	mandelbrot(z, c) = z**2 + c
-	"""
-	
-	re = z.real**2 - z.imag**2 + c.real
-	im = 2 * z.real * z.imag + c.imag
-	return complex(re, im)
+spec = [
+	('xmin', float32),
+	('xmax', float32),
+	('ymin', float32),
+	('ymax', float32),
+	('resx', int32),
+	('resy', int32),
+	('escape_time', int32),
+	('mandels_grid', float64[:,:]),
+	('clr_values', float64[:]),
+	('array_x', float64[:]),
+	('array_y', float64[:]),
+	('clr_arr_hex', nb.types.List(nb.int64)),
+]
 
-@jit(nopython=True)
-def create_grid(xmin: float, xmax: float,
+@jitclass(spec)
+class Mandelbrot_faster():
+	def __init__(self, xmin: float, xmax: float,
 				ymin: float, ymax: float,
-				res: (int, int),
-				escape_time: int = 1000) -> (np.ndarray, np.ndarray, np.ndarray):
-	"""
-	Creates a grid of numbers corresponding to the mandelbrot set.
-	
-	
-	Runs thorugh all values of z=x+yi in the complex plain and gives
-	a value back based on if it's in or how fast it was computed out
-	of the set.
-	"""
-	
-	z = complex(0,0)
-	
-	# Number of points in the x and y range
-	res_x = res[0]
-	res_y = res[1]
-	
-	# All values of x and y
-	cx_range = np.linspace(xmin, xmax, res_x)
-	cy_range = np.linspace(ymin, ymax, res_y)
+				res: (int, int), escape_time: int = 1000):
 
-	# Empty x*y array for mandelbrot values
-	mandels_grid = np.zeros((res_x, res_y))
+		self.xmin = xmin
+		self.xmax = xmax
+		self.ymin = ymin
+		self.ymax = ymax
+		self.resx = res[0]
+		self.resy = res[1]
+		self.escape_time = escape_time
+		self.mandels_grid = np.zeros((self.resx, self.resy))
+		self.clr_values = np.zeros(self.resx*self.resy)
+		self.array_x = np.zeros(self.resx*self.resy)
+		self.array_y = np.zeros(self.resx*self.resy)
+		#self.clr_arr_hex = np.chararray(self.resx*self.resy)
+		self.clr_arr_hex = empty_int64_list()
 
-	# Empty 1d arrays for all x and y values
-	array_x = np.zeros(res_x*res_y)
-	array_y = np.zeros(res_x*res_y)
-	
-	# Initial postition values for the 3 arrays
-	pos = 0
-	pos_x = 0
-	pos_y = 0
 
-	# Iterates through all c=x+yi values and checks if they
-	# are in the mandelbrot set, adds their value to the grid.
-	for i in cx_range:
-		for j in cy_range:
-			clr = escape_time
-			c = complex(i, j)
-			f = complex(0, 0)
-			for j in range(escape_time):
-				f = mandelbrot(f, c)
-				if abs(f) > 2:
-					mandels_grid[pos_x][pos_y] = clr
-					break
-				else:
-					if j == escape_time-1:
-						mandels_grid[pos_x][pos_y] = clr
-						pass
-				clr = clr - 1
-			array_x[pos] = c.real
-			array_y[pos] = c.imag
-			pos_y += 1
-			pos += 1
-		pos_x += 1
-		pos_y = 0
+	def mandelbrot_calculation(self, z: complex, c: complex) -> complex:
+		"""
+		Computes a iteration for a point in the mandlebrot set
 		
-	return array_x, array_y, mandels_grid
-	
-def save_fig(x_vals, y_vals, clr_grid, filename, mode=1):
-	"""
-	Saves a mandelbrot scatter-plot as an image-file.
-	"""
-	
-	clr_values = clr_grid.flatten()
-	
-	# Normalizes the values of the color array
-	clr_values = clr_values/(np.amax(clr_values)/1000)
-	# Added modes for assignment 4.7
-	if(mode==1):
+		mandelbrot(z, c) = z**2 + c
+		"""
+		
+		re = z.real**2 - z.imag**2 + c.real
+		im = 2 * z.real * z.imag + c.imag
+		return complex(re, im)
+
+
+	def mandelbrot_value(self, c: complex) -> int:
+		val = self.escape_time
+		f = complex(0,0)
+		while val > 0:
+			f = self.mandelbrot_calculation(f,c)
+			if abs(f) > 2:
+				return val
+			val = val -1
+
+		return val
+		
+
+	def construct_mandel(self):
+		z = complex(0,0)
+
+		cx_range = np.linspace(self.xmin, self.xmax, self.resx)
+		cy_range = np.linspace(self.ymin, self.ymax, self.resy)
+		
+
+		for xIndex, xValue in enumerate(cx_range):
+			for yIndex, yValue in enumerate(cy_range):
+				self.mandels_grid[xIndex][yIndex] = self.mandelbrot_value(complex(xValue, yValue))
+				self.array_x[xIndex+xIndex*yIndex] = xValue
+				self.array_y[xIndex+xIndex*yIndex] = yValue
+
+
+	def save_fig(self, filename):
+		"""
+		Saves a mandelbrot scatter-plot as an image-file.
+		"""
+		
+		self.clr_values = self.mandels_grid.flatten()
+		
+		# Normalizes the values of the color array
+		self.clr_values = self.clr_values/(np.amax(self.clr_values)/1000)
 		# Converts the array into an array of hex color values
 		# The power on x is just to increase the color range
-		clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in clr_values]
-	if(mode==2):
-		clr_arr_hex = ["#%06x" % (int(x**1.5)) for x in clr_values]
-	if(mode==3):
-		clr_arr_hex = ["#%08x" % (int(x**2.2)) for x in clr_values]
-	
-	# Plots all the points calculated with corresponding color values
-	plt.scatter(x_vals, y_vals, color=clr_arr_hex)
-	plt.savefig(filename)
-	
-
-# For when ran by itself, or via mandelbrot.py
-if __name__=="__main__" or len(sys.argv) > 8:
-	
-	if(len(sys.argv)) == 9:
-		xmin = float(sys.argv[2])
-		xmax = float(sys.argv[3])
-		ymin = float(sys.argv[4])
-		ymax = float(sys.argv[5])
-		res = int(sys.argv[6]), int(sys.argv[7])
-		filename = sys.argv[8]
-	else:
-		xmin = -2
-		xmax = 2
-		ymin = -2
-		ymax = 2
-		res = (300, 300)
-		filename = "image_mandel.png"
-
-	start = time.time()
-	values = create_grid(xmin, xmax, ymin, ymax, res)
-	stop = time.time()
-	print(stop-start)
-
-	save_fig(values[0], values[1], values[2], filename)
+		self.clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in self.clr_values]
+		
+		# Plots all the points calculated with corresponding color values
+		plt.scatter(self.array_x, self.array_y, color=clr_arr_hex)
+		plt.savefig(filename)
+		print("\nImage saved as: {}".format(filename))
+		
