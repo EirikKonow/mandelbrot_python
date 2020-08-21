@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-
+import time
 import argparse
 import sys
-from mandelbrot import Mandelbrot
+from mandelbrot_slow import Mandelbrot_slow
+from mandelbrot_fast import Mandelbrot_fast
 
 def is_cmd_number(string):
 	if type(string) == str:
@@ -21,8 +22,6 @@ def cmd_line_interface():
 	"""
 
 	if len(sys.argv) == 1:
-		args = {}
-		print(type(args))
 		# Introduction
 		msg ="""	{}
 	# {:>58}
@@ -47,9 +46,6 @@ def cmd_line_interface():
 			print("	Invalid input!")
 			version = input(msg)
 
-		args["version"] = version
-		print(type(args))
-		print(args)
 
 
 		# Selecting xmin
@@ -82,8 +78,6 @@ def cmd_line_interface():
 		
 		xmin = float(xmin)
 		xmax = float(xmax)
-		args["xmin"] = xmin
-		args["xmax"] = xmax
 
 
 		# Selecting ymin
@@ -116,8 +110,6 @@ def cmd_line_interface():
 		
 		ymin = float(ymin)
 		ymax = float(ymax)
-		args["ymin"] = ymin
-		args["ymax"] = ymax
 
 		# Selecting Nx
 		msg = """
@@ -133,7 +125,6 @@ def cmd_line_interface():
 			print()
 		
 		nx = int(nx)
-		args["Nx"] = nx
 
 
 		# Selecting Ny
@@ -150,20 +141,25 @@ def cmd_line_interface():
 			print()
 		
 		ny = int(ny)
-		args["Ny"] = ny
 
 		# Selecting name
 		msg = """
 	Finally, select the name of the output file.
 	"""
 		name = input(msg)
-		args["name"] = name
 
 
 		# Runs the mandelbrot
-		mandel = Mandelbrot(xmin, xmax, ymin, ymax, (nx, ny))
+		start_time = time.time()
+		if version == '1':
+			mandel = Mandelbrot_fast(xmin, xmax, ymin, ymax, (nx, ny))
+		elif version == '2':
+			mandel = Mandelbrot_fast(xmin, xmax, ymin, ymax, (nx, ny))
 		mandel.construct_mandel()
-		mandel.save_fig("mymandle")
+		mandel.save_fig(name+".png")
+
+		end_time = time.time()
+		print("Process complete! Time used: {}".format(end_time-start_time))
 
 
 
@@ -207,22 +203,18 @@ def cmd_line_interface():
 		# Constructs the filename
 		version = "mandelbrot_" + args.version + ".py"
 
-		print("Working method:")
-		print(vars(args))
-		print("version={}".format(version))
 
-	
-		# Runs the file
-		exec(open(version).read(), vars(args))
+		# Runs the mandelbrot
+		start_time = time.time()
+		if args.version == '1':
+			mandel = Mandelbrot_slow(args.xmin, args.xmax, args.ymin, args.ymax, (args.Nx, args.Ny))
+		elif args.version == '2':
+			mandel = Mandelbrot_fast(args.xmin, args.xmax, args.ymin, args.ymax, (args.Nx, args.Ny))
+		
+		mandel.construct_mandel()
+		mandel.save_fig("{}.png".format(args.name))
+		end_time = time.time()
+		print("Process complete! Time used: {}".format(end_time-start_time))
 
 
 
-"""
-Working method:
-{'version': '1', 'xmin': -1.0, 'xmax': 2.0, 'ymin': -1.0, 'ymax': 1.0, 'Nx': 100, 'Ny': 100, 'name': 'test1'}
-version=mandelbrot_1.py
-
-non-working method:
-{'version': '1', 'xmin': -1.0, 'xmax': 2.0, 'ymin': -1.0, 'ymax': 1.0, 'Nx': 100, 'Ny': 100, 'name': 'test1'}
-version=mandelbrot_1.py
-"""
