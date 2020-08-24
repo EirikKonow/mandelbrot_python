@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import time
 from numba.experimental import jitclass
-from numba import int32, float32, float64, char
+from numba import int32, float32, float64
 import numba as nb
 
 
@@ -21,7 +21,6 @@ spec = [
 	('clr_values', float64[:]),
 	('array_x', float64[:]),
 	('array_y', float64[:]),
-	('clr_arr_hex', nb.types.List(nb.int64)),
 ]
 
 @jitclass(spec)
@@ -42,7 +41,7 @@ class Mandelbrot_faster():
 		self.array_x = np.zeros(self.resx*self.resy)
 		self.array_y = np.zeros(self.resx*self.resy)
 		#self.clr_arr_hex = np.chararray(self.resx*self.resy)
-		self.clr_arr_hex = empty_int64_list()
+		#self.clr_arr_hex = empty_int64_list()
 
 
 	def mandelbrot_calculation(self, z: complex, c: complex) -> complex:
@@ -85,19 +84,15 @@ class Mandelbrot_faster():
 
 	def save_fig(self, filename):
 		"""
-		Saves a mandelbrot scatter-plot as an image-file.
+		#Saves a mandelbrot scatter-plot as an image-file.
 		"""
+
 		
-		self.clr_values = self.mandels_grid.flatten()
+		cmap = plt.cm.hsv
+		norm = matplotlib.colors.Normalize(vmin=0, vmax=30)
 		
-		# Normalizes the values of the color array
-		self.clr_values = self.clr_values/(np.amax(self.clr_values)/1000)
 		# Converts the array into an array of hex color values
-		# The power on x is just to increase the color range
-		self.clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in self.clr_values]
-		
-		# Plots all the points calculated with corresponding color values
-		plt.scatter(self.array_x, self.array_y, color=clr_arr_hex)
-		plt.savefig(filename)
-		print("\nImage saved as: {}".format(filename))
-		
+		#The power on x is just to increase the color range
+		#clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in self.clr_values]
+		plt.scatter(self.mandels_grid[0], self.mandels_grid[1], marker="+", color=cmap(norm(self.clr_values.real)))
+		plt.savefig(filename, dpi=1000)

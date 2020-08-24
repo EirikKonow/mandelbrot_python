@@ -21,13 +21,49 @@ class Mandelbrot_fast():
 		self.map = np.zeros((self.res[0],self.res[1]))
 
 
+	def meshgrid(self, *xi, copy=True, sparse=False, indexing='xy'):
+		"""
+		Borrowing the meshgrid function from numpy 
+		since meshgrid isn't directly supported by numba.
+		Source:
+		https://github.com/numpy/numpy/blob/v1.19.0/numpy/lib/function_base.py#L4102-L4229
+		"""
+		ndim = len(xi)
+
+		if indexing not in ['xy', 'ij']:
+		    raise ValueError(
+		        "Valid values for `indexing` are 'xy' and 'ij'.")
+
+		s0 = (1,) * ndim
+		output = [np.asanyarray(x).reshape(s0[:i] + (-1,) + s0[i + 1:])
+		          for i, x in enumerate(xi)]
+
+		if indexing == 'xy' and ndim > 1:
+		    # switch first and second axis
+		    output[0].shape = (1, -1) + s0[2:]
+		    output[1].shape = (-1, 1) + s0[2:]
+
+		if not sparse:
+		    # Return the full N-D matrix (not only the 1-D vector)
+		    output = np.broadcast_arrays(*output, subok=True)
+
+		if copy:
+		    output = [x.copy() for x in output]
+
+		return output
+
 	def construct_mandel(self):
 		#numpy utilization!
 
 		cx_array = np.linspace(self.xmin, self.xmax, self.res[0])
 		cy_array = np.linspace(self.ymin, self.ymax, self.res[1])
-		self.mandels_grid = np.meshgrid(cx_array, cy_array)
-		c_array = self.mandels_grid[0] + self.mandels_grid[1] * 1j
+		
+		#self.mandels_grid = np.meshgrid(cx_array, cy_array)
+		#c_array = self.mandels_grid[0] + self.mandels_grid[1] * 1j
+
+		mandels_grid_0, mandels_grid_1 = self.meshgrid(cx_array, cy_array)
+		c_array = mandels_grid_0 + mandels_grid_1 * 1j
+		print(c_array)
 
 		N=np.zeros_like(c_array)
 		Z=np.zeros_like(c_array)
@@ -52,9 +88,9 @@ class Mandelbrot_fast():
 		
 		# Converts the array into an array of hex color values
 		#The power on x is just to increase the color range
-		clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in self.clr_values]
+		#clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in self.clr_values]
 		plt.scatter(self.mandels_grid[0], self.mandels_grid[1], marker="+", color=cmap(norm(self.clr_values.real)))
-		plt.savefig(filename, dpi=2000)
+		plt.savefig(filename, dpi=1000)
 
 		"""
 	def mandelbrot_calculation(self, z: complex, c: complex) -> complex:

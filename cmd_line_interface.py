@@ -5,6 +5,7 @@ import sys
 from mandelbrot_slow import Mandelbrot_slow
 from mandelbrot_fast import Mandelbrot_fast
 from mandelbrot_faster import Mandelbrot_faster
+from old import Mandelbrot_fastest
 
 def is_cmd_number(string):
 	if type(string) == str:
@@ -44,7 +45,7 @@ def cmd_line_interface():
 	"""
 		version = input(msg)
 
-		while(not version in ['1','2','3']):
+		while(not version in ['1','2','3','4']):
 			print("	Invalid input!")
 			version = input(msg)
 		args["version"] = version
@@ -213,9 +214,10 @@ def cmd_line_interface():
 		mandel = Mandelbrot_fast(args.xmin, args.xmax, args.ymin, args.ymax, (args.Nx, args.Ny))
 	elif args.version == '3':
 		mandel = Mandelbrot_faster(args.xmin, args.xmax, args.ymin, args.ymax, (args.Nx, args.Ny))
-	
+	elif args.version == '4':
+		mandel = Mandelbrot_fastest(args.xmin, args.xmax, args.ymin, args.ymax, (args.Nx, args.Ny))
 	mandel.construct_mandel()
-	mandel.save_fig(args.name+".png")
+	#mandel.save_fig(args.name+".png")
 
 	end_time = time.time()
 	print("Process complete! Time used: {}".format(end_time-start_time))

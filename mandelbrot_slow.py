@@ -75,14 +75,14 @@ class Mandelbrot_slow():
 		"""
 		
 		clr_values = self.mandels_grid.flatten()
-		cmap = plt.cm.rainbow
-		norm = matplotlib.colors.Normalize(vmin=1, vmax=10)
+		cmap = plt.cm.gist_ncar
+		norm = matplotlib.colors.Normalize(vmin=1, vmax=1000)
 		
 		# Normalizes the values of the color array
-		clr_values = clr_values/(np.amax(clr_values)/1000)
+		#clr_values = clr_values/(np.amax(clr_values)/1000)
 		# Converts the array into an array of hex color values
 		# The power on x is just to increase the color range
-		clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in clr_values]
+		#clr_arr_hex = ["#%06x" % (int(x**2.2)) for x in clr_values]
 
 		
 		# Plots all the points calculated with corresponding color values
